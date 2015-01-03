@@ -16,8 +16,6 @@ module Reports
     def repositories(username)
       puts "Fetching repository statistics for #{username}..."
 
-      api = GitHubAPI.new(proxy: options['proxy'])
-
       puts "#{username} has 1 public repo.\n\n"
 
       table_printer = TablePrinter.new(STDOUT)
@@ -47,9 +45,11 @@ module Reports
       table_printer.print(sample_repos, title: "Project Push Summary", total: true)
     end
 
-    desc "console", "Open an RB session with all dependencies loaded."
+    desc "console", "Open an RB session with all dependencies loaded and API defined."
+    option :proxy, type: :boolean,
+      desc: "Use an HTTP proxy running at localhost:8080", default: false
     def console
-      Kernel.const_set :API, GitHubAPI.new
+      Kernel.const_set :API, GitHubAPI.new(proxy: options['proxy'])
       require 'irb'
       ARGV.clear
       IRB.start
