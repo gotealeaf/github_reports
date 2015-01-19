@@ -14,16 +14,17 @@ module Reports
       if !File.exist?(netrc_path) ||
          !File.read(netrc_path).include?('api.github.com')
 
-        puts "Please setup your .netrc file at ~/.netrc using the directions here:"
-        puts "https://github.com/octokit/octokit.rb#using-a-netrc-file"
-        exit 1
+        message = "Please setup your .netrc file at ~/.netrc using the directions here:" +
+                  "https://github.com/octokit/octokit.rb#using-a-netrc-file"
+
+        fail message
       end
     end
 
     def create_default_client(use_proxy)
       #check_for_netrc
 
-      octokit_client = Octokit::Client.new(netrc: true)
+      octokit_client = Octokit::Client.new
 
       if use_proxy
         puts "Using HTTP proxy..."
