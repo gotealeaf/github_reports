@@ -7,6 +7,23 @@ module Reports
       @client = options[:client] || create_default_client(options[:proxy])
     end
 
+    def repos_for_username(username, options={})
+      repos = @client.repos(username, type: :owner)
+      response = @client.last_response
+
+      while next_url = response.rels[:next]
+        response = next_url.get
+        repos.concat(response.data)
+      end
+
+      repos.map do |repo|
+        next if repo.fork? && !options[:forks]
+        language_response = repo.rels[:languages].get
+
+        Repo.new(repo.name, repo.description, language_response.data.to_hash)
+      end.compact
+    end
+
     private
 
     def check_for_netrc
@@ -22,9 +39,9 @@ module Reports
     end
 
     def create_default_client(use_proxy)
-      #check_for_netrc
+      check_for_netrc
 
-      octokit_client = Octokit::Client.new
+      octokit_client = Octokit::Client.new(netrc: true)
 
       if use_proxy
         puts "Using HTTP proxy..."

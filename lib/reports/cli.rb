@@ -16,16 +16,28 @@ module Reports
     def repositories(username)
       puts "Fetching repository statistics for #{username}..."
 
-      puts "#{username} has 1 public repo.\n\n"
+      api = GitHubAPI.new(proxy: options['proxy'])
+      repos = api.repos_for_username(username, forks: options['forks'])
+
+      puts "#{username} has #{repos.size} public repos.\n\n"
 
       table_printer = TablePrinter.new(STDOUT)
 
-      sample_languages = {Ruby: 123, JavaScript: 23}
-      table_printer.print(sample_languages, title: "Sample Repo", humanize: true)
+      repos.each do |repo|
+        table_printer.print(repo.languages, title: repo.name, humanize: true)
+        puts # blank line
+      end
 
-      puts # blank line
-      table_printer.print(sample_languages, title: "Language Summary", humanize: true, total: true)
+      stats = repos.inject(Hash.new(0)) do |sum, repo|
+        repo.languages.each_pair do |language, bytes|
+          sum[language] += bytes
+        end
+        sum
+      end
+
+      table_printer.print(stats, title: "Language Summary", humanize: true, total: true)
     end
+
 
     desc "activity USERNAME", "Summarize the activity of GitHub user USERNAME"
     option :proxy, type: :boolean,
