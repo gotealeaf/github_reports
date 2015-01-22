@@ -43,5 +43,42 @@ module Reports
       ])
     end
 
+    it "fetches the events for a username", vcr: true do
+      api = GitHubAPI.new
+
+      events = api.public_events_for_username('jim')
+
+      expect(events.size).to eq(45)
+      expect(events.first).to be_instance_of(Event)
+      expect(events.map{|e| [e.type, e.repo_name]}).to eq([
+        ["CreateEvent", "jim/github_reports_template"],
+        ["PushEvent", "jim/api_client_template"],
+        ["PushEvent", "jim/api_client_template"],
+        ["PushEvent", "jim/api_client_template"],
+        ["CreateEvent", "jim/api_client_template"],
+        ["CreateEvent", "jim/api_client_template"],
+        ["PushEvent", "jim/carmen-rails"], ["PushEvent", "jim/carmen"],
+        ["PushEvent", "jim/carmen-rails"], ["PushEvent", "jim/carmen"],
+        ["IssueCommentEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["PushEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["PullRequestEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["IssuesEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["PullRequestEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["IssueCommentEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["IssuesEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["IssueCommentEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["IssueCommentEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["GollumEvent", "jim/carmen"], ["GollumEvent", "jim/carmen"],
+        ["GollumEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["PushEvent", "jim/carmen"], ["PullRequestEvent", "jim/carmen"],
+        ["IssueCommentEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["PullRequestEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["PullRequestEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["PullRequestEvent", "jim/carmen"], ["IssueCommentEvent", "jim/carmen"],
+        ["IssueCommentEvent", "jim/carmen"], ["PushEvent", "jim/carmen"],
+        ["PullRequestEvent", "jim/carmen"]
+      ])
+    end
+
   end
 end

@@ -24,6 +24,20 @@ module Reports
       end.compact
     end
 
+    def public_events_for_username(username)
+      events = @client.user_public_events(username)
+      response = @client.last_response
+
+      while next_url = response.rels[:next]
+        response = next_url.get
+        events.concat(response.data)
+      end
+
+      events.map do |event_data|
+        Event.new(event_data.type, event_data.repo.name)
+      end
+    end
+
     private
 
     def check_for_netrc
