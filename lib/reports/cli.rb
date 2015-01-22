@@ -28,11 +28,11 @@ module Reports
         puts # blank line
       end
 
-      stats = repos.inject(Hash.new(0)) do |sum, repo|
+      stats = Hash.new(0)
+      repos.each do |repo|
         repo.languages.each_pair do |language, bytes|
-          sum[language] += bytes
+          stats[language] += bytes
         end
-        sum
       end
 
       table_printer.print(stats, title: "Language Summary", humanize: true, total: true)
