@@ -45,16 +45,26 @@ module Reports
     def activity(username)
       puts "Fetching activity summary for #{username}..."
 
-      puts "Fetched 1 event.\n\n"
+      api = GitHubAPI.new(proxy: options['proxy'])
+      events = api.public_events_for_username(username)
+      puts "Fetched #{events.size} events.\n\n"
 
       table_printer = TablePrinter.new(STDOUT)
 
-      sample_events = {PushEvent: 1}
-      table_printer.print(sample_events, title: "Event Summary", total: true)
+      event_types_map = events.each_with_object(Hash.new(0)) do |event, counts|
+        counts[event.type] += 1
+      end
 
-      sample_repos = {"username/repository" => 1 }
+      table_printer.print(event_types_map, title: "Event Summary", total: true)
+
+      push_events = events.select { |event| event.type == "PushEvent" }
+
+      push_events_map = push_events.each_with_object(Hash.new(0)) do |event, counts|
+        counts[event.repo_name] += 1
+      end
+
       puts # blank line
-      table_printer.print(sample_repos, title: "Project Push Summary", total: true)
+      table_printer.print(push_events_map, title: "Project Push Summary", total: true)
     end
 
     desc "console", "Open an RB session with all dependencies loaded and API defined."
