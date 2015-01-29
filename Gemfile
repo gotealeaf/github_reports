@@ -9,7 +9,7 @@ gem "netrc"
 gem "activesupport"
 
 group :development, :test do
-  gem "byebug"
+  gem "pry-byebug"
 end
 
 group :test do
