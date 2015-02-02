@@ -16,17 +16,8 @@ module Reports
       end
     end
 
-    it "does not cache requests without a cache-control header" do
-      stubs.get("http://example.test") { [200, {}, "hello"] }
-
-      response = conn.get "http://example.test"
-
-      expect(response.success?).to eq(true)
-      expect(storage).to be_empty
-    end
-
     it "caches a response using its URL" do
-      stubs.get("http://example.test") { [200, {"Cache-Control" => "public"}, "hello"] }
+      stubs.get("http://example.test") { [200, {}, "hello"] }
 
       conn.get "http://example.test"
 
@@ -34,7 +25,7 @@ module Reports
     end
 
     it "returns a previously cached response" do
-      stubs.get("http://example.test") { [200, {"Cache-Control" => "public"}, "hello"] }
+      stubs.get("http://example.test") { [200, {}, "hello"] }
 
       responses = 2.times.map { conn.get "http://example.test" }
 
@@ -42,12 +33,14 @@ module Reports
       expect(responses[1].headers["X-Faraday-Cache-Status"]).to eql("cached")
     end
 
-    it "caches requests with a Cache-Control header" do
-      stubs.get("http://example.com") { [200, {"Cache-Control" => "public"}, "hello"] }
+    %w{post patch put}.each do |http_method|
+      it "does not cache #{http_method} requests" do
+        stubs.send(http_method, "http://example.com") { [200, {}, "hello"] }
 
-      conn.get "http://example.test"
+        conn.send http_method, "http://example.test"
 
-      expect(storage).to_not be_empty
+        expect(storage).to be_empty
+      end
     end
 
     describe CacheMiddleware::Response do

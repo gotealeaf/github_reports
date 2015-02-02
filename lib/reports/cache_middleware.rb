@@ -38,10 +38,6 @@ module Reports
         @key = options[:key]
       end
 
-      def cacheable?
-        @response_headers.key?("cache-control")
-      end
-
       def to_hash
         { status: @status, body: @body.dup, response_headers: @response_headers.dup }
       end
@@ -61,15 +57,18 @@ module Reports
 
       if response_hash = @storage.get(key)
         response_hash[:response_headers]["X-Faraday-Cache-Status"] = "cached"
-        Response.new(response_hash).to_faraday_response
-      else
-        response = @app.call(env)
+        return Response.new(response_hash).to_faraday_response
+      end
+
+      response = @app.call(env)
+      if env.method == :get
         response.on_complete do
           cached = Response.from_response(response)
-          @storage.set(cached.key, cached.to_hash) if cached.cacheable?
+          @storage.set(cached.key, cached.to_hash)
         end
-        response
       end
+
+      response
     end
   end
 end
