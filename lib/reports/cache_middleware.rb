@@ -15,7 +15,6 @@ module Reports
     class Response
 
       attr_reader :status
-      attr_reader :key
       attr_reader :body
       attr_reader :response_headers
 
@@ -23,8 +22,7 @@ module Reports
         env = response.env.to_hash
         new(status: env[:status],
             body: env[:body],
-            response_headers: env[:response_headers],
-            key: cache_key(response.env))
+            response_headers: env[:response_headers])
       end
 
       def self.cache_key(env)
@@ -35,7 +33,6 @@ module Reports
         @status = options[:status]
         @body = options[:body]
         @response_headers = options[:response_headers]
-        @key = options[:key]
       end
 
       def to_hash
@@ -64,7 +61,7 @@ module Reports
       if env.method == :get
         response.on_complete do
           cached = Response.from_response(response)
-          @storage.set(cached.key, cached.to_hash)
+          @storage.set(key, cached.to_hash)
         end
       end
 
