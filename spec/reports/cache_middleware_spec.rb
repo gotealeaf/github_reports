@@ -21,7 +21,7 @@ module Reports
 
       conn.get "http://example.test"
 
-      expect(storage.get("http://example.test")).to be_instance_of(Hash)
+      expect(storage.read("http://example.test")).to be_instance_of(Hash)
     end
 
     it "returns a previously cached response" do

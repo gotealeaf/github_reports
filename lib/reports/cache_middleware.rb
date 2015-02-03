@@ -3,8 +3,8 @@ module Reports
 
     class HashStorage
       extend Forwardable
-      def_delegator :@storage, :[], :get
-      def_delegator :@storage, :[]=, :set
+      def_delegator :@storage, :[], :read
+      def_delegator :@storage, :[]=, :write
       def_delegators :@storage, :empty?
 
       def initialize
@@ -52,7 +52,7 @@ module Reports
     def call(env)
       key = Response.cache_key(env)
 
-      if response_hash = @storage.get(key)
+      if response_hash = @storage.read(key)
         response_hash[:response_headers]["X-Faraday-Cache-Status"] = "cached"
         return Response.new(response_hash).to_faraday_response
       end
@@ -61,7 +61,7 @@ module Reports
       if env.method == :get
         response.on_complete do
           cached = Response.from_response(response)
-          @storage.set(key, cached.to_hash)
+          @storage.write(key, cached.to_hash)
         end
       end
 
