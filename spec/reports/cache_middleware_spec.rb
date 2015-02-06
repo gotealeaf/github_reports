@@ -39,7 +39,7 @@ module Reports
 
         conn.send http_method, "http://example.test"
 
-        expect(storage).to be_empty
+        expect(storage.read("http://example.test")).to be_nil
       end
     end
 

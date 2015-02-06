@@ -1,3 +1,7 @@
+require 'redis'
+require 'yaml'
+require 'byebug'
+
 module Reports
   class CacheMiddleware < Faraday::Middleware
 
@@ -5,15 +9,27 @@ module Reports
       extend Forwardable
       def_delegator :@storage, :[], :read
       def_delegator :@storage, :[]=, :write
-      def_delegators :@storage, :empty?
 
       def initialize
         @storage = {}
       end
     end
 
-    class Response
+    class RedisStorage
+      def initialize(redis=Redis.new)
+        @redis = redis
+      end
+      def read(key)
+        value = @redis.get(key)
+        YAML.load(value) if value
+      end
+      def write(key, value)
+        yaml = YAML.dump(value)
+        @redis.set(key, yaml)
+      end
+    end
 
+    class Response
       attr_reader :status
       attr_reader :body
       attr_reader :response_headers
@@ -46,7 +62,7 @@ module Reports
 
     def initialize(app, options={})
       super(app)
-      @storage = options[:storage]
+      @storage = options[:storage] || HashStorage.new
     end
 
     def call(env)

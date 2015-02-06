@@ -7,6 +7,7 @@ gem "octokit"
 gem "thor"
 gem "netrc"
 gem "activesupport"
+gem "redis"
 
 group :development, :test do
   gem "pry-byebug"

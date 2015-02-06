@@ -36,6 +36,7 @@ GEM
       byebug (~> 3.4)
       pry (~> 0.10)
     rake (10.3.2)
+    redis (3.1.0)
     rspec (3.1.0)
       rspec-core (~> 3.1.0)
       rspec-expectations (~> 3.1.0)
@@ -71,6 +72,7 @@ DEPENDENCIES
   octokit
   pry-byebug
   rake
+  redis
   rspec
   thor
   vcr

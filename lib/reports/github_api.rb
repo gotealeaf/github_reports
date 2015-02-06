@@ -64,6 +64,13 @@ module Reports
         octokit_client.connection_options = options
       end
 
+      stack = Faraday::RackBuilder.new do |builder|
+        builder.use CacheMiddleware, storage: CacheMiddleware::RedisStorage.new
+        builder.use Octokit::Response::RaiseError
+        builder.adapter Faraday.default_adapter
+      end
+      octokit_client.middleware = stack
+
       octokit_client.login
 
       octokit_client
