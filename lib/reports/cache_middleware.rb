@@ -49,7 +49,7 @@ module Reports
       def initialize(options={})
         @status = options[:status]
         @body = options[:body]
-        @response_headers = options[:response_headers]
+        @response_headers = options[:response_headers] || {}
       end
 
       def time
@@ -92,6 +92,8 @@ module Reports
     end
 
     def call(env)
+      return @app.call(env) if env.method != :get
+
       key = Response.cache_key(env)
 
       if response_hash = @storage.read(key)
@@ -109,20 +111,18 @@ module Reports
 
       response = @app.call(env)
 
-      if env.method == :get
-        response.on_complete do |response_env|
+      response.on_complete do |response_env|
 
-          if @conditional_request && response.status == 304
-            cached_hash = @storage.read(key)
-            cached_response = Response.new(cached_hash)
-            cached_response.response_headers['Date'] = response.headers['Date']
+        if @conditional_request && response.status == 304
+          cached_hash = @storage.read(key)
+          cached_response = Response.new(cached_hash)
+          cached_response.response_headers['Date'] = response.headers['Date']
 
-            @storage.write(key, cached_response.to_hash)
-            response_env.update(cached_response.to_hash)
-          else
-            middleware_response = Response.from_response(response)
-            @storage.write(key, middleware_response.to_hash)
-          end
+          @storage.write(key, cached_response.to_hash)
+          response_env.update(cached_response.to_hash)
+        else
+          middleware_response = Response.from_response(response)
+          @storage.write(key, middleware_response.to_hash)
         end
       end
 

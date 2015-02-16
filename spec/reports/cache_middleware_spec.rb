@@ -38,39 +38,59 @@ module Reports
     end
 
     it "refetches a stale but current response and updates its date header" do
-      new_date = Time.new.httpdate
+      now = Time.at(Time.new.to_i) # Truncate precision smaller than seconds
+      now_date = now.httpdate
       url = "http://example.text"
-      stubs.get(url) { [304, { 'Date' => new_date }, "" ] }
 
       stale_response = CacheMiddleware::Response.new(
-        status: 200, response_headers: {'Date' => (Time.new - 61).httpdate}, body: "hello")
-
+        status: 200,
+        body: "old content",
+        response_headers: { "Date" => (Time.new - 61).httpdate, "ETag" => "oldETag"})
       storage.write(url, stale_response.to_hash)
 
-      response = conn.get url
-      expect(response.status).to eql(200)
-      expect(response.headers['Date']).to eql(new_date)
-      expect(response.body).to eql("hello")
+      stubs.get(url) do |env|
+        expect(env.request_headers["If-None-Match"]).to eql("oldETag")
+        [304, { "Date" => now_date, "ETag" => "oldETag" }, "" ]
+      end
 
-      stored_response = storage.read(url)
-      expect(stored_response[:response_headers]['Date']).to eql(new_date)
+      response = conn.get url
+
+      expect(response.status).to eql(200)
+      expect(response.headers["Date"]).to eql(now_date)
+      expect(response.body).to eql("old content")
+      expect(response.headers["ETag"]).to eql("oldETag")
+
+      stored_response_hash = storage.read(url)
+      stored_response = CacheMiddleware::Response.new(stored_response_hash)
+
+      expect(stored_response.time).to eq(now)
+      expect(stored_response.status).to eql(200)
+      expect(stored_response.body).to eql("old content")
+      expect(stored_response.etag).to eql("oldETag")
     end
 
     it "refetches a stale response and replaces it with a new one" do
       now = Time.at(Time.new.to_i) # Truncate precision smaller than seconds
-      new_date = now.httpdate
+      now_date = now.httpdate
       url = "http://example.text"
+
       stale_response = CacheMiddleware::Response.new(
-        status: 200, response_headers: {'Date' => (Time.new - 61).httpdate}, body: "old content")
+        status: 200,
+        body: "old content",
+        response_headers: { "Date" => (Time.new - 61).httpdate, "ETag" => "oldETag"})
       storage.write(url, stale_response.to_hash)
 
-      stubs.get(url) { [200, { 'Date' => new_date }, "new content" ] }
+      stubs.get(url) do |env|
+        expect(env.request_headers["If-None-Match"]).to eql("oldETag")
+        [200, { "Date" => now_date, "ETag" => "newETag" }, "new content" ]
+      end
 
       response = conn.get url
 
       expect(response.status).to eql(200)
-      expect(response.headers['Date']).to eql(new_date)
+      expect(response.headers["Date"]).to eql(now_date)
       expect(response.body).to eql("new content")
+      expect(response.headers["ETag"]).to eql("newETag")
 
       stored_response_hash = storage.read(url)
       stored_response = CacheMiddleware::Response.new(stored_response_hash)
@@ -78,6 +98,7 @@ module Reports
       expect(stored_response.time).to eq(now)
       expect(stored_response.status).to eql(200)
       expect(stored_response.body).to eql("new content")
+      expect(stored_response.etag).to eql("newETag")
     end
 
     %w{post patch put}.each do |http_method|
@@ -109,12 +130,38 @@ module Reports
         expect(response.age).to eql(32)
       end
 
+      it "has no time or age without a Date header" do
+        response = CacheMiddleware::Response.new
+
+        expect(response.time).to be_nil
+        expect(response.age).to be_nil
+      end
+
       it "parses a max-age out of the Cache-Control header" do
         response = CacheMiddleware::Response.new(response_headers: {
           "Cache-Control" => "private, max-age=60, s-maxage=60"
         })
 
         expect(response.max_age).to eql(60)
+      end
+
+      it "is stale when it is older than its max age" do
+        one_minute_ago = Time.new - 61
+
+        response = CacheMiddleware::Response.new(response_headers: {
+          "Cache-Control" => "private, max-age=60, s-maxage=60",
+          "Date" => one_minute_ago.httpdate
+        })
+
+        expect(response).to be_stale
+      end
+
+      it "is stale without a max_age" do
+        response = CacheMiddleware::Response.new(response_headers: {
+          "Date" => Time.new.httpdate
+        })
+
+        expect(response).to be_stale
       end
 
       it "creates an instance from a Faraday::Response" do
