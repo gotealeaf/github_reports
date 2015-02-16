@@ -52,8 +52,32 @@ module Reports
       expect(response.headers['Date']).to eql(new_date)
       expect(response.body).to eql("hello")
 
-      stored_request = storage.read(url)
-      expect(stored_request[:response_headers]['Date']).to eql(new_date)
+      stored_response = storage.read(url)
+      expect(stored_response[:response_headers]['Date']).to eql(new_date)
+    end
+
+    it "refetches a stale response and replaces it with a new one" do
+      now = Time.at(Time.new.to_i) # Truncate precision smaller than seconds
+      new_date = now.httpdate
+      url = "http://example.text"
+      stale_response = CacheMiddleware::Response.new(
+        status: 200, response_headers: {'Date' => (Time.new - 61).httpdate}, body: "old content")
+      storage.write(url, stale_response.to_hash)
+
+      stubs.get(url) { [200, { 'Date' => new_date }, "new content" ] }
+
+      response = conn.get url
+
+      expect(response.status).to eql(200)
+      expect(response.headers['Date']).to eql(new_date)
+      expect(response.body).to eql("new content")
+
+      stored_response_hash = storage.read(url)
+      stored_response = CacheMiddleware::Response.new(stored_response_hash)
+
+      expect(stored_response.time).to eq(now)
+      expect(stored_response.status).to eql(200)
+      expect(stored_response.body).to eql("new content")
     end
 
     %w{post patch put}.each do |http_method|
