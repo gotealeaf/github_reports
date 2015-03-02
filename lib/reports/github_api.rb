@@ -38,6 +38,14 @@ module Reports
       end
     end
 
+    def create_private_gist(description, filename, contents)
+      gist = @client.create_gist(description: description, public: false,
+        files: {
+          filename => { content: contents }
+      })
+      gist.html_url
+    end
+
     private
 
     def check_for_netrc

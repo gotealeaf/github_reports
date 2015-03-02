@@ -67,6 +67,18 @@ module Reports
       table_printer.print(push_events_map, title: "Project Push Summary", total: true)
     end
 
+    desc "gist DESCRIPTION FILENAME CONTENTS", "Create a private Gist on GitHub"
+    option :proxy, type: :boolean,
+      desc: "Use an HTTP proxy running at localhost:8080", default: false
+    def gist(description, filename, contents)
+      puts "Creating a private Gist..."
+
+      api = GitHubAPI.new(proxy: options['proxy'])
+      gist = api.create_private_gist(description, filename, contents)
+
+      puts "Your Gist is available at #{gist.inspect}."
+    end
+
     desc "console", "Open an RB session with all dependencies loaded and API defined."
     option :proxy, type: :boolean,
       desc: "Use an HTTP proxy running at localhost:8080", default: false

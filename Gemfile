@@ -17,4 +17,5 @@ group :test do
   gem "vcr"
   gem "webmock"
   gem "rspec"
+  gem "sinatra"
 end
