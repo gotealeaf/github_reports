@@ -5,6 +5,7 @@ module Reports
 
   Event = Struct.new(:type, :repo_name)
   Repo = Struct.new(:name, :languages)
+  Gist = Struct.new(:url)
 
   class GitHubAPI
 
@@ -41,10 +42,28 @@ module Reports
         full_name = repo["full_name"]
         language_url = "https://api.github.com/repos/#{full_name}/languages"
 
-        response = perform_request(language_url)
+        response = perform_request(:get, language_url)
 
         Repo.new(repo["name"], JSON.parse(response.body))
       end.compact
+    end
+
+    def create_private_gist(description, filename, contents)
+      url = "https://api.github.com/gists"
+      payload = JSON.dump({
+        description: description,
+        public: false,
+        files: {
+          filename => {
+            content: contents
+          }
+        }
+      })
+
+      response = perform_request(:post, url, payload)
+
+      gist = JSON.parse(response.body)
+      Gist.new(gist["html_url"])
     end
 
     private
@@ -53,7 +72,7 @@ module Reports
       results = []
 
       while url do
-        response = perform_request(url)
+        response = perform_request(:get, url)
 
         results.concat(JSON.parse(response.body))
         url = extract_next_page_url(response)
@@ -62,9 +81,10 @@ module Reports
       results
     end
 
-    def perform_request(url)
+    def perform_request(method, url, params_or_body={})
+      raise ArgumentError unless %i{get post}.include?(method)
       headers = {"Authorization" => "token #{@token}"}
-      response = Faraday.get(url, {}, headers)
+      response = Faraday.send(method, url, params_or_body, headers)
       raise RequestFailure.new(response) unless (200..299).cover?(response.status)
 
       response

@@ -14,20 +14,30 @@ module Reports
     desc "repositories USERNAME", "Load the repo stats for USERNAME"
     option :forks, type: :boolean,
       desc: "Include forks in repo stats", default: false
+
     def repositories(username)
-      #puts "Fetching repository statistics for #{username}..."
+      puts "Fetching repository statistics for #{username}..."
 
-      #puts "#{username} has 1 public repo.\n\n"
+      api = GitHubAPI.new(ENV["GITHUB_TOKEN"])
+      repos = api.public_repos_for_user(username, forks: options['forks'])
 
-      #table_printer = TablePrinter.new(STDOUT)
+      puts "#{username} has #{repos.size} public repos.\n\n"
 
-      #sample_languages = {Ruby: 123, JavaScript: 23}
-      #table_printer.print(sample_languages, title: "Sample Repo", humanize: true)
+      table_printer = TablePrinter.new(STDOUT)
 
-      #puts # blank line
-      #table_printer.print(sample_languages, title: "Language Summary", humanize: true, total: true)
-      api = GitHubAPI.new(ENV['GITHUB_TOKEN'])
-      puts api.public_repos_for_user(username, forks: options[:forks])
+      repos.each do |repo|
+        table_printer.print(repo.languages, title: repo.name, humanize: true)
+        puts # blank line
+      end
+
+      stats = Hash.new(0)
+      repos.each do |repo|
+        repo.languages.each_pair do |language, bytes|
+          stats[language] += bytes
+        end
+      end
+
+      table_printer.print(stats, title: "Language Summary", humanize: true, total: true)
     end
 
     desc "activity USERNAME", "Summarize the activity of GitHub user USERNAME"
@@ -56,11 +66,18 @@ module Reports
       table_printer.print(push_events_map, title: "Project Push Summary", total: true)
     end
 
+    desc "gist DESCRIPTION FILENAME CONTENTS", "Create a private Gist on GitHub"
+    def gist(description, filename, contents)
+      puts "Creating a private Gist..."
+
+      api = GitHubAPI.new(ENV['GITHUB_TOKEN'])
+      gist = api.create_private_gist(description, filename, contents)
+
+      puts "Your Gist is available at #{gist.url}."
+    end
+
     desc "console", "Open an RB session with all dependencies loaded and API defined."
-    option :proxy, type: :boolean,
-      desc: "Use an HTTP proxy running at localhost:8080", default: false
     def console
-      #Kernel.const_set :API, GitHubAPI.new(proxy: options['proxy'])
       require 'irb'
       ARGV.clear
       IRB.start
