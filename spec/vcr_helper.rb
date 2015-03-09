@@ -1,6 +1,8 @@
 require 'vcr'
 require 'webmock'
-require 'netrc'
+
+require 'dotenv'
+Dotenv.load
 
 VCR.configure do |c|
   c.cassette_library_dir = 'spec/cassettes'
@@ -9,8 +11,5 @@ VCR.configure do |c|
   c.allow_http_connections_when_no_cassette = true
 
   # Prevent GitHub credentials from being saved in the cassette files.
-  netrc = Netrc.read
-  username, password = netrc["api.github.com"]
-  c.filter_sensitive_data('<USER>') { username }
-  c.filter_sensitive_data('<TOKEN>') { password }
+  c.filter_sensitive_data('<TOKEN>') { ENV['GITHUB_TOKEN'] }
 end
