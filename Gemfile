@@ -5,7 +5,7 @@ ruby '2.1.2'
 gem "rake"
 gem "octokit"
 gem "thor"
-gem "netrc"
+gem "dotenv"
 gem "activesupport"
 
 group :development, :test do

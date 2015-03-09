@@ -3,6 +3,9 @@ require 'bundler/setup'
 
 require 'thor'
 
+require 'dotenv'
+Dotenv.load
+
 require 'reports'
 
 module Reports
@@ -11,27 +14,27 @@ module Reports
     desc "repositories USERNAME", "Load the repo stats for USERNAME"
     option :forks, type: :boolean,
       desc: "Include forks in repo stats", default: false
-    option :proxy, type: :boolean,
-      desc: "Use an HTTP proxy running at localhost:8080", default: false
     def repositories(username)
-      puts "Fetching repository statistics for #{username}..."
+      #puts "Fetching repository statistics for #{username}..."
 
-      puts "#{username} has 1 public repo.\n\n"
+      #puts "#{username} has 1 public repo.\n\n"
 
-      table_printer = TablePrinter.new(STDOUT)
+      #table_printer = TablePrinter.new(STDOUT)
 
-      sample_languages = {Ruby: 123, JavaScript: 23}
-      table_printer.print(sample_languages, title: "Sample Repo", humanize: true)
+      #sample_languages = {Ruby: 123, JavaScript: 23}
+      #table_printer.print(sample_languages, title: "Sample Repo", humanize: true)
 
-      puts # blank line
-      table_printer.print(sample_languages, title: "Language Summary", humanize: true, total: true)
+      #puts # blank line
+      #table_printer.print(sample_languages, title: "Language Summary", humanize: true, total: true)
+      api = GitHubAPI.new(ENV['GITHUB_TOKEN'])
+      puts api.public_repos_for_user(username, forks: options[:forks])
     end
 
     desc "activity USERNAME", "Summarize the activity of GitHub user USERNAME"
     def activity(username)
       puts "Fetching activity summary for #{username}..."
 
-      api = GitHubAPI.new
+      api = GitHubAPI.new(ENV['GITHUB_TOKEN'])
       events = api.public_events_for_user(username)
       puts "Fetched #{events.size} events.\n\n"
 
