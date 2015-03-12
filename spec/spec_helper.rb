@@ -40,3 +40,5 @@ RSpec.configure do |config|
 
   Kernel.srand config.seed
 end
+
+ENV["LOG_LEVEL"] ||= "INFO"

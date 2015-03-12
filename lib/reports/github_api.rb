@@ -60,13 +60,36 @@ module Reports
         }
       })
 
-      response = perform_request(:post, url, payload)
+      response = perform_request(:post, url, params: payload)
 
       gist = JSON.parse(response.body)
       Gist.new(gist["html_url"])
     end
 
+    def repo_starred?(full_repo_name)
+      url = "https://api.github.com/user/starred/#{full_repo_name}"
+      response = perform_request(:get, url, statuses: [204, 404])
+      response.status == 204
+    end
+
+    def star_repo(full_repo_name)
+      url = "https://api.github.com/user/starred/#{full_repo_name}"
+      perform_request(:put, url, statuses: 204)
+    end
+
+    def unstar_repo(full_repo_name)
+      url = "https://api.github.com/user/starred/#{full_repo_name}"
+      perform_request(:delete, url, statuses: 204)
+    end
+
     private
+
+    def client
+      @client ||= Faraday::Connection.new do |builder|
+        builder.use LoggingMiddleware
+        builder.adapter Faraday.default_adapter
+      end
+    end
 
     def request_all_pages(url)
       results = []
@@ -81,11 +104,16 @@ module Reports
       results
     end
 
-    def perform_request(method, url, params_or_body={})
-      raise ArgumentError unless %i{get post}.include?(method)
+    def perform_request(method, url, options={})
+      params_or_body = options.fetch(:params, nil)
+      statuses = Array(options.fetch(:statuses, [200, 201]))
+
+      raise ArgumentError unless %i{get post put delete}.include?(method)
       headers = {"Authorization" => "token #{@token}"}
-      response = Faraday.send(method, url, params_or_body, headers)
-      raise RequestFailure.new(response) unless (200..299).cover?(response.status)
+
+      response = client.send(method, url, params_or_body, headers)
+
+      raise RequestFailure.new(response) unless statuses.include?(response.status)
 
       response
     end

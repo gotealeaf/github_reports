@@ -1,5 +1,4 @@
 require 'active_support/dependencies/autoload'
-require 'active_support/number_helper'
 
 # Silence warnings caused by including ActiveSupport and I18n.
 I18n.enforce_available_locales = true

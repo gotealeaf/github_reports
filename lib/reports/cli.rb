@@ -11,6 +11,16 @@ require 'reports'
 module Reports
 
   class CLI < Thor
+    def initialize(*args)
+      super
+
+      ActiveSupport::Notifications.subscribe('request.faraday') do |name, start_time, end_time, _, env|
+        http_method = env.method.to_s.upcase
+        duration = end_time - start_time
+        puts '[%s] %s %s %d (%.3f s)' % [env.url.host, http_method, env.url.request_uri, env.status, duration]
+      end
+    end
+
     desc "repositories USERNAME", "Load the repo stats for USERNAME"
     option :forks, type: :boolean,
       desc: "Include forks in repo stats", default: false
@@ -74,6 +84,34 @@ module Reports
       gist = api.create_private_gist(description, filename, contents)
 
       puts "Your Gist is available at #{gist.url}."
+    end
+
+    desc "star_repo FULL_REPO_NAME", "Star a repository"
+    def star_repo(repo_name)
+      puts "Starring #{repo_name}..."
+
+      api = GitHubAPI.new(ENV['GITHUB_TOKEN'])
+
+      if api.repo_starred?(repo_name)
+        puts "You have already starred #{repo_name}."
+      else
+        api.star_repo(repo_name)
+        puts "You have starred #{repo_name}."
+      end
+    end
+
+    desc "unstar_repo FULL_REPO_NAME", "Unstar a repository"
+    def unstar_repo(repo_name)
+      puts "Unstarring #{repo_name}..."
+
+      api = GitHubAPI.new(ENV['GITHUB_TOKEN'])
+
+      if api.repo_starred?(repo_name)
+        api.unstar_repo(repo_name)
+        puts "You have unstarred #{repo_name}."
+      else
+        puts "You have not starred #{repo_name}."
+      end
     end
 
     desc "console", "Open an RB session with all dependencies loaded and API defined."
