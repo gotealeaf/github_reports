@@ -10,6 +10,7 @@ gem "activesupport"
 gem "dalli"
 gem "redis"
 gem "faraday"
+gem 'rubocop'
 
 group :development, :test do
   gem "byebug"
