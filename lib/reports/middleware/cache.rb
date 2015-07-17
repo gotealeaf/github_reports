@@ -12,7 +12,9 @@ module Reports
 
         if cached_response.exist?
           if cached_response.fresh?
-            return Marshal.load(Marshal.dump(@storage.read(key)))
+            response = @storage.read(key)
+            response.env.response_headers["X-Faraday-Cache-Status"] = "true"
+            return response
           elsif
             env.request_headers["If-None-Match"] = cached_response.etag
           end
@@ -29,7 +31,8 @@ module Reports
               cached_response.update_date(response)
               response.env.update(cached_response.env)
             end
-            @storage.write(key, Marshal.load(Marshal.dump(@storage.read(key))))
+            @storage.write(key, response)
+              # @storage.write(key, response )
           end
         end
         response
@@ -92,7 +95,7 @@ module Reports
         end
 
         def cache_control_header
-          @cache_controll_header ||= env.response_headers['Cache-Control']
+          @cache_control_header ||= env.response_headers['Cache-Control']
         end
       end
     end
